@@ -24,11 +24,13 @@ import java.lang.reflect.Proxy;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import org.slf4j.Logger;
 import org.xwiki.component.annotation.Component;
-import org.xwiki.component.annotation.Requirement;
 import org.xwiki.component.descriptor.ComponentDescriptor;
 import org.xwiki.component.descriptor.DefaultComponentDescriptor;
-import org.xwiki.component.logging.AbstractLogEnabled;
 import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.component.manager.ComponentRepositoryException;
 import org.xwiki.component.phase.Initializable;
@@ -43,16 +45,23 @@ import org.xwiki.model.reference.DocumentReference;
  * Default implementation of {@link WikiComponentManager}. Creates proxy objects which method invocation handler keeps a
  * reference on a set of declared method and associated wiki content to "execute".
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
 @Component
-public class DefaultWikiComponentManager extends AbstractLogEnabled implements WikiComponentManager
+@Singleton
+public class DefaultWikiComponentManager implements WikiComponentManager
 {
+    /**
+     * The logger to log.
+     */
+    @Inject
+    private Logger logger;
+
     /**
      * Component manager against which wiki component will be registered.
      */
-    @Requirement
+    @Inject
     private ComponentManager mainComponentManager;
 
     /**
@@ -95,7 +104,7 @@ public class DefaultWikiComponentManager extends AbstractLogEnabled implements W
                 try {
                     ((Initializable) instance).initialize();
                 } catch (InitializationException e) {
-                    getLogger().error("Failed to initialize wiki component", e);
+                    this.logger.error("Failed to initialize wiki component", e);
                 }
             }
 

@@ -22,11 +22,14 @@ package com.xpn.xwiki.internal;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.commons.lang.StringUtils;
-import org.xwiki.bridge.XWikiInitializedBridgeEvent;
+import org.slf4j.Logger;
+import org.xwiki.bridge.event.ApplicationReadyEvent;
 import org.xwiki.component.annotation.Component;
-import org.xwiki.component.annotation.Requirement;
-import org.xwiki.component.logging.AbstractLogEnabled;
 import org.xwiki.component.wiki.InvalidComponentDefinitionException;
 import org.xwiki.component.wiki.WikiComponent;
 import org.xwiki.component.wiki.WikiComponentBuilder;
@@ -36,6 +39,7 @@ import org.xwiki.context.Execution;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.observation.EventListener;
 import org.xwiki.observation.event.Event;
+import org.xwiki.rendering.syntax.Syntax;
 
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
@@ -47,11 +51,13 @@ import com.xpn.xwiki.user.api.XWikiRightService;
  * Initializes the Wiki Component feature. First ensure all needed XClasses are up-to-date, then registers existing
  * components.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
-@Component("wikiComponentInitializer")
-public class WikiComponentInitializer extends AbstractLogEnabled implements EventListener
+@Component
+@Named("wikiComponentInitializer")
+@Singleton
+public class WikiComponentInitializer implements EventListener
 {
     /**
      * The XClass defining a component implementation.
@@ -94,21 +100,27 @@ public class WikiComponentInitializer extends AbstractLogEnabled implements Even
     private static final String COMPONENT_ROLE_FIELD = "role";
 
     /**
+     * The logger to log.
+     */
+    @Inject
+    private Logger logger;
+
+    /**
      * Our execution. Needed to access the XWiki context.
      */
-    @Requirement
+    @Inject
     private Execution execution;
 
     /**
      * The wiki component manager that knows how to register component definition against the underlying CM.
      */
-    @Requirement
+    @Inject
     private WikiComponentManager wikiComponentManager;
 
     /**
      * Builder that creates component description from document references.
      */
-    @Requirement
+    @Inject
     private WikiComponentBuilder wikiComponentBuilder;
 
     /**
@@ -116,7 +128,7 @@ public class WikiComponentInitializer extends AbstractLogEnabled implements Even
      */
     public List<Event> getEvents()
     {
-        return Arrays.<Event> asList(new XWikiInitializedBridgeEvent());
+        return Arrays.<Event> asList(new ApplicationReadyEvent());
     }
 
     /**
@@ -156,14 +168,14 @@ public class WikiComponentInitializer extends AbstractLogEnabled implements Even
                     this.wikiComponentManager.registerWikiComponent(component);
                 } catch (InvalidComponentDefinitionException e) {
                     // Fail quietly and only log at the debug level.
-                    getLogger().debug("Invalid wiki component definition for reference " + ref.toString(), e);
+                    this.logger.debug("Invalid wiki component definition for reference [{}]", ref.toString(), e);
                 } catch (WikiComponentException e) {
                     // Fail quietly and only log at the debug level.
-                    getLogger().debug("Failed to register wiki component for reference " + ref.toString(), e);
+                    this.logger.debug("Failed to register wiki component for reference [{}]", ref.toString(), e);
                 }
             }
         } catch (XWikiException e) {
-            getLogger().error("Failed to register existing wiki components", e);
+            this.logger.error("Failed to register existing wiki components", e);
         }
 
     }
@@ -179,7 +191,7 @@ public class WikiComponentInitializer extends AbstractLogEnabled implements Even
             this.installOrUpdateComponentMethodXClass();
             this.installOrUpdateComponentInterfaceXClass();
         } catch (XWikiException e) {
-            getLogger().error("Failed to install or update wiki component XClasses", e);
+            this.logger.error("Failed to install or update wiki component XClasses", e);
         }
     }
 
@@ -320,10 +332,10 @@ public class WikiComponentInitializer extends AbstractLogEnabled implements Even
             needsUpdate = true;
             doc.setTitle(title);
         }
-        if (StringUtils.isBlank(doc.getContent()) || !XWikiDocument.XWIKI20_SYNTAXID.equals(doc.getSyntaxId())) {
+        if (StringUtils.isBlank(doc.getContent()) || !Syntax.XWIKI_2_0.equals(doc.getSyntax())) {
             needsUpdate = true;
             doc.setContent("{{include document=\"XWiki.ClassSheet\" /}}");
-            doc.setSyntaxId(XWikiDocument.XWIKI20_SYNTAXID);
+            doc.setSyntax(Syntax.XWIKI_2_0);
         }
         return needsUpdate;
     }

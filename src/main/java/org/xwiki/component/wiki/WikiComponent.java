@@ -27,8 +27,8 @@ import org.xwiki.rendering.block.XDOM;
 /**
  * Represents the definition of a wiki component implementation.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
 public interface WikiComponent
 {

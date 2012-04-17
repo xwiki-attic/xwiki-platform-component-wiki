@@ -21,13 +21,12 @@ package org.xwiki.component.wiki;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xwiki.bridge.DocumentAccessBridge;
-import org.xwiki.component.logging.AbstractLogEnabled;
-import org.xwiki.component.logging.CommonsLoggingLogger;
 import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.component.wiki.internal.DefaultMethodOutputHandler;
 import org.xwiki.context.Execution;
@@ -43,11 +42,16 @@ import org.xwiki.rendering.transformation.TransformationException;
  * Method invocation handler for wiki component proxy instances. Has a reference on a map of name/body wiki code of
  * supported methods.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
-public class WikiComponentInvocationHandler extends AbstractLogEnabled implements InvocationHandler
+public class WikiComponentInvocationHandler implements InvocationHandler
 {
+    /**
+     * The logger to log.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(WikiComponentInvocationHandler.class);
+
     /**
      * The key under which the component reference (a virtual "this") is kept in the method invocation context. 
      */
@@ -121,9 +125,6 @@ public class WikiComponentInvocationHandler extends AbstractLogEnabled implement
     {
         this.wikiComponent = wikiComponent;
         this.componentManager = componentManager;
-        
-        // This class is not used as a component, so we replace the void logger manually since the CM doesn't do it for us.
-        this.enableLogging(new CommonsLoggingLogger(this.getClass()));
     }
 
     /**
@@ -153,14 +154,13 @@ public class WikiComponentInvocationHandler extends AbstractLogEnabled implement
     @SuppressWarnings("unchecked")
     private Object executeWikiContent(Object proxy, Method method, Object[] args) throws Exception
     {
-        Map xwikiContext = null;
-        Object contextDoc = null;
+        Map xwikiContext;
 
         XDOM xdom = this.wikiComponent.getHandledMethods().get(method.getName());
 
-        Execution execution = componentManager.lookup(Execution.class);
-        Transformation macroTransformation = componentManager.lookup(Transformation.class, "macro");
-        DocumentAccessBridge docBridge = componentManager.lookup(DocumentAccessBridge.class);
+        Execution execution = componentManager.getInstance(Execution.class);
+        Transformation macroTransformation = componentManager.getInstance(Transformation.class, "macro");
+        DocumentAccessBridge docBridge = componentManager.getInstance(DocumentAccessBridge.class);
 
         Map<String, Object> methodContext = new HashMap<String, Object>();
         methodContext.put(METHOD_CONTEXT_OUTPUT_KEY, new DefaultMethodOutputHandler());
@@ -181,7 +181,8 @@ public class WikiComponentInvocationHandler extends AbstractLogEnabled implement
         xwikiContext = (Map) execution.getContext().getProperty("xwikicontext");
         xwikiContext.put("method", methodContext);
         // Save current context document.
-        contextDoc = xwikiContext.get(XWIKI_CONTEXT_DOC_KEY);
+        // TODO: Problem here: contextDoc is not used!!!
+        Object contextDoc = xwikiContext.get(XWIKI_CONTEXT_DOC_KEY);
         // Make sure has prog rights
         xwikiContext.put(XWIKI_CONTEXT_DOC_KEY, docBridge.getDocument(this.wikiComponent.getDocumentReference()));
 
@@ -189,9 +190,8 @@ public class WikiComponentInvocationHandler extends AbstractLogEnabled implement
         try {
             macroTransformation.transform(xdom, Syntax.XWIKI_2_0);
         } catch (TransformationException e) {
-            this.getLogger().error(
-                MessageFormat.format("Error while executing wiki component macro transformation for method {0}",
-                    new Object[] {method.getName()}), e);
+            LOGGER.error("Error while executing wiki component macro transformation for method [{}]",
+                method.getName(), e);
         }
 
         if (methodContext.get(METHOD_CONTEXT_OUTPUT_KEY) != null
@@ -202,7 +202,7 @@ public class WikiComponentInvocationHandler extends AbstractLogEnabled implement
             // If return type is String and no specific return value has been provided during the macro
             // expansion, then we return the content redered as
             WikiPrinter printer = new DefaultWikiPrinter();
-            BlockRenderer renderer = componentManager.lookup(BlockRenderer.class, Syntax.PLAIN_1_0.toIdString());
+            BlockRenderer renderer = componentManager.getInstance(BlockRenderer.class, Syntax.PLAIN_1_0.toIdString());
             renderer.render(xdom, printer);
             return printer.toString();
         } else {

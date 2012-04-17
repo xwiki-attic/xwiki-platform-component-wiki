@@ -23,8 +23,8 @@ package org.xwiki.component.wiki;
  * Exception thrown by component builders when a document holds an invalid compoentn definition.
  * (For example if no role has been specified).
  * 
- *  @since 2.4-M2
- *  @version $Id$
+ * @version $Id$
+ * @since 4.1M1
  */
 public class InvalidComponentDefinitionException extends Exception
 {

@@ -23,12 +23,11 @@ package org.xwiki.component.wiki;
  * Utility for wiki methods to return a value. An implementation of this interface is binded in the context of a
  * wiki method execution, so that such method scripts can return a value using {@link #returnValue(Object)}.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
 public interface MethodOutputHandler
 {
-    
     /**
      * Stores a value in the method invocation context for further return.
      * Note that if this method is called multiple times during the invocation, the last one wins.

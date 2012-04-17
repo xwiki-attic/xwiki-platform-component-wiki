@@ -25,10 +25,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
 import org.xwiki.component.annotation.Component;
-import org.xwiki.component.annotation.Requirement;
-import org.xwiki.component.logging.AbstractLogEnabled;
 import org.xwiki.component.wiki.InvalidComponentDefinitionException;
 import org.xwiki.component.wiki.WikiComponent;
 import org.xwiki.component.wiki.WikiComponentBuilder;
@@ -52,9 +55,9 @@ import com.xpn.xwiki.objects.BaseObject;
  * @version $Id$
  */
 @Component
-public class DefaultWikiComponentBuilder extends AbstractLogEnabled implements WikiComponentBuilder
+@Singleton
+public class DefaultWikiComponentBuilder implements WikiComponentBuilder
 {
-
     /**
      * The name of the document that holds the XClass definition of a wiki component.
      */
@@ -81,20 +84,25 @@ public class DefaultWikiComponentBuilder extends AbstractLogEnabled implements W
     private static final String COMPONENT_INTERFACE_NAME_FIELD = COMPONENT_METHOD_NAME_FIELD;
 
     /**
+     * The logger to log.
+     */
+    @Inject
+    private Logger logger;
+
+    /**
      * Parser. Used to load code as XDOM from XObject string.
      */
-    @Requirement("xwiki/2.0")
+    @Inject
+    @Named("xwiki/2.0")
     private Parser parser;
     
     /**
      * Execution, needed to access the XWiki context map.
      */
-    @Requirement
+    @Inject
     private Execution execution;
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public WikiComponent build(DocumentReference reference) throws InvalidComponentDefinitionException,
         WikiComponentException
     {
@@ -132,17 +140,15 @@ public class DefaultWikiComponentBuilder extends AbstractLogEnabled implements W
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public boolean containsWikiComponent(DocumentReference reference) 
+    @Override
+    public boolean containsWikiComponent(DocumentReference reference)
     {
         XWikiDocument componentDocument;
         try {
             componentDocument = getXWikiContext().getWiki().getDocument(reference, getXWikiContext());
             return componentDocument.getObject(XWIKI_COMPONENT_CLASS) != null;        
         } catch (XWikiException e) {
-            getLogger().error("Failed to verify if document holds a wiki component", e);
+            this.logger.error("Failed to verify if document holds a wiki component", e);
             // assume false
             return false;
         }

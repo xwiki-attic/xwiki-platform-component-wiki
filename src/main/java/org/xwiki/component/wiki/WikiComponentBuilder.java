@@ -19,19 +19,18 @@
  */
 package org.xwiki.component.wiki;
 
-import org.xwiki.component.annotation.ComponentRole;
+import org.xwiki.component.annotation.Role;
 import org.xwiki.model.reference.DocumentReference;
 
 /**
  * Constructs a {@link WikiComponent} out of the data contained in the document pointed by a {@link DocumentReference}.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
-@ComponentRole
+@Role
 public interface WikiComponentBuilder
 {
-
     /**
      * Builds a wiki component representation extracting the data stored as objects of document.
      * 
@@ -50,5 +49,4 @@ public interface WikiComponentBuilder
      * @return true if the document contains a wiki component definition, false otherwise
      */
     boolean containsWikiComponent(DocumentReference reference);
-    
 }

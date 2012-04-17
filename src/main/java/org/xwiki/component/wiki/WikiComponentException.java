@@ -21,9 +21,9 @@ package org.xwiki.component.wiki;
 
 /**
  * A generic exception thrown by this module, usually a wrapper around lower level exceptions.
- * 
- * @since 2.4-M2
+ *
  * @version $Id$
+ * @since 4.1M1
  */
 public class WikiComponentException extends Exception
 {

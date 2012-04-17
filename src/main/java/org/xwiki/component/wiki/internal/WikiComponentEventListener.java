@@ -22,10 +22,16 @@ package org.xwiki.component.wiki.internal;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
+import org.slf4j.Logger;
 import org.xwiki.bridge.DocumentModelBridge;
+import org.xwiki.bridge.event.DocumentCreatedEvent;
+import org.xwiki.bridge.event.DocumentDeletedEvent;
+import org.xwiki.bridge.event.DocumentUpdatedEvent;
 import org.xwiki.component.annotation.Component;
-import org.xwiki.component.annotation.Requirement;
-import org.xwiki.component.logging.AbstractLogEnabled;
 import org.xwiki.component.wiki.InvalidComponentDefinitionException;
 import org.xwiki.component.wiki.WikiComponent;
 import org.xwiki.component.wiki.WikiComponentBuilder;
@@ -33,9 +39,6 @@ import org.xwiki.component.wiki.WikiComponentException;
 import org.xwiki.component.wiki.WikiComponentManager;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.observation.EventListener;
-import org.xwiki.observation.event.DocumentDeleteEvent;
-import org.xwiki.observation.event.DocumentSaveEvent;
-import org.xwiki.observation.event.DocumentUpdateEvent;
 import org.xwiki.observation.event.Event;
 
 /**
@@ -43,54 +46,58 @@ import org.xwiki.observation.event.Event;
  * based on wiki component create / delete / update actions.
  * 
  * @version $Id$
- * @since 2.22
+ * @since 4.1M1
  */
-@Component(WikiComponentEventListener.NAME)
-public class WikiComponentEventListener extends AbstractLogEnabled implements EventListener
+@Component
+@Named(WikiComponentEventListener.NAME)
+@Singleton
+public class WikiComponentEventListener implements EventListener
 {
-
     /**
      * This event listener name. Also used as role hint for this component implementation.
      */
     public static final String NAME = "wikiComponentListener";
 
     /**
+     * The logger to log.
+     */
+    @Inject
+    private Logger logger;
+
+    /**
      * Wiki Component manager. Used to register/unregister wiki components.
      */
-    @Requirement
+    @Inject
     private WikiComponentManager wikiComponentManager;
 
     /**
      * Wiki Component builder. Used to create {@link WikiComponent} form document references.
      */
-    @Requirement
+    @Inject
     private WikiComponentBuilder wikiComponentBuilder;
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public List<Event> getEvents()
     {
-        return Arrays.<Event> asList(new DocumentSaveEvent(), new DocumentUpdateEvent(), new DocumentDeleteEvent());
+        return Arrays.<Event> asList(
+            new DocumentCreatedEvent(),
+            new DocumentUpdatedEvent(),
+            new DocumentDeletedEvent());
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public String getName()
     {
         return NAME;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void onEvent(Event event, Object source, Object data)
     {
         DocumentModelBridge document = (DocumentModelBridge) source;
         DocumentReference documentReference = document.getDocumentReference();
 
-        if (event instanceof DocumentSaveEvent || event instanceof DocumentUpdateEvent) {
+        if (event instanceof DocumentCreatedEvent || event instanceof DocumentUpdatedEvent) {
             
             // Unregister any existing component registered under this document.
             if (unregisterComponentInternal(documentReference)) {
@@ -104,12 +111,10 @@ public class WikiComponentEventListener extends AbstractLogEnabled implements Ev
                         wikiComponent = this.wikiComponentBuilder.build(documentReference);
                     } catch (InvalidComponentDefinitionException e) {
                         // An invalid component exception here can be an expected error, so we only log at debug level.
-                        getLogger().debug(
-                            String.format("Invalid component definition for document [%s]", documentReference), e);
+                        this.logger.warn("Invalid component definition for document [{}]", documentReference);
                         return;
                     } catch (WikiComponentException e) {
-                        getLogger().error(
-                            String.format("Failed to create wiki component for document [%s]", documentReference), e);
+                        this.logger.error("Failed to create wiki component for document [{}]", documentReference, e);
                         return;
                     }
 
@@ -117,7 +122,7 @@ public class WikiComponentEventListener extends AbstractLogEnabled implements Ev
                     registerComponentInternal(wikiComponent);
                 }
             }
-        } else if (event instanceof DocumentDeleteEvent) {
+        } else if (event instanceof DocumentDeletedEvent) {
             unregisterComponentInternal(documentReference);
         }
 
@@ -133,11 +138,8 @@ public class WikiComponentEventListener extends AbstractLogEnabled implements Ev
         try {
             this.wikiComponentManager.registerWikiComponent(wikiComponent);
         } catch (WikiComponentException e) {
-            getLogger()
-                .debug(
-                    String
-                        .format("Unable to register component in document [%s]", wikiComponent.getDocumentReference()),
-                    e);
+            this.logger.warn("Unable to register component in document [{}]", wikiComponent.getDocumentReference(),
+                e);
         }
     }
 
@@ -149,17 +151,15 @@ public class WikiComponentEventListener extends AbstractLogEnabled implements Ev
      */
     private boolean unregisterComponentInternal(DocumentReference documentReference)
     {
-        boolean result = true;
+        boolean result = false;
         if (this.wikiComponentBuilder.containsWikiComponent(documentReference)) {
             try {
                 this.wikiComponentManager.unregisterWikiComponent(documentReference);
+                result = true;
             } catch (WikiComponentException e) {
-                getLogger().debug(String.format("Unable to unregister component in document [%s]", documentReference),
-                    e);
-                result = false;
+                this.logger.warn("Unable to unregister component in document [{}]", documentReference, e);
             }
         }
         return result;
     }
-
 }

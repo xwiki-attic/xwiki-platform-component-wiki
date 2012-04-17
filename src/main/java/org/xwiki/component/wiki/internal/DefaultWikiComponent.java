@@ -29,8 +29,8 @@ import org.xwiki.rendering.block.XDOM;
 /**
  * Default implementation of a wiki component definition.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
 public class DefaultWikiComponent implements WikiComponent
 {

@@ -19,7 +19,7 @@
  */
 package org.xwiki.component.wiki;
 
-import org.xwiki.component.annotation.ComponentRole;
+import org.xwiki.component.annotation.Role;
 import org.xwiki.model.reference.DocumentReference;
 
 /**
@@ -29,13 +29,12 @@ import org.xwiki.model.reference.DocumentReference;
  * document may also define requirements (other components to be binded in the method bodies execution context) and
  * possible extra interfaces (for example to implement {@link org.xwiki.component.phase.Initializable}).
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
-@ComponentRole
+@Role
 public interface WikiComponentManager
 {
-
     /**
      * Registers the passed component against the underlying component repository.
      * 
@@ -51,5 +50,4 @@ public interface WikiComponentManager
      * @throws WikiComponentException when failed to unregister the component from the CM.
      */
     void unregisterWikiComponent(DocumentReference reference) throws WikiComponentException;
-    
 }

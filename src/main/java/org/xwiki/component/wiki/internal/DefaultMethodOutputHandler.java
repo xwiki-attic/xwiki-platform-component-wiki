@@ -24,31 +24,25 @@ import org.xwiki.component.wiki.MethodOutputHandler;
 /**
  * Default method output handler.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
 public class DefaultMethodOutputHandler implements MethodOutputHandler
 {
-
     /**
      * The stored return value.
      */
     private Object returnValue;
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void returnValue(Object value)
     {
         this.returnValue = value;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Object getReturnValue()
     {
         return this.returnValue;
     }
-
 }
