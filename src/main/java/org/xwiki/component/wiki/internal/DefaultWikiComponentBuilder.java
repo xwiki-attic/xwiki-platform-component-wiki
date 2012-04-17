@@ -55,33 +55,8 @@ import com.xpn.xwiki.objects.BaseObject;
  */
 @Component
 @Singleton
-public class DefaultWikiComponentBuilder implements WikiComponentBuilder
+public class DefaultWikiComponentBuilder implements WikiComponentBuilder, WikiComponentConstants
 {
-    /**
-     * The name of the document that holds the XClass definition of a wiki component.
-     */
-    private static final String XWIKI_COMPONENT_CLASS = "XWiki.ComponentClass";
-
-    /**
-     * The name of the document that holds the XClass definition of an implementation of an interface by a component.
-     */
-    private static final String XWIKI_COMPONENT_INTERFACE_CLASS = "XWiki.ComponentInterfaceClass";
-
-    /**
-     * The name of the document that holds the XClass definition of a method of a component.
-     */
-    private static final String XWIKI_COMPONENT_METHOD_CLASS = "XWiki.ComponentMethodClass";
-
-    /**
-     * The property name of the name of a component method.
-     */
-    private static final String COMPONENT_METHOD_NAME_FIELD = "name";
-
-    /**
-     * The property name of the name of an implemented interface. (Checkstyle fix).
-     */
-    private static final String COMPONENT_INTERFACE_NAME_FIELD = COMPONENT_METHOD_NAME_FIELD;
-
     /**
      * The logger to log.
      */
@@ -107,7 +82,7 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder
     {
         try {
             XWikiDocument componentDocument = getXWikiContext().getWiki().getDocument(reference, getXWikiContext());
-            BaseObject componentObject = componentDocument.getObject(XWIKI_COMPONENT_CLASS);
+            BaseObject componentObject = componentDocument.getObject(COMPONENT_CLASS);
 
             if (componentObject == null) {
                 throw new InvalidComponentDefinitionException("No component object could be found");
@@ -145,7 +120,7 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder
         XWikiDocument componentDocument;
         try {
             componentDocument = getXWikiContext().getWiki().getDocument(reference, getXWikiContext());
-            return componentDocument.getObject(XWIKI_COMPONENT_CLASS) != null;        
+            return componentDocument.getObject(COMPONENT_CLASS) != null;
         } catch (XWikiException e) {
             this.logger.error("Failed to verify if document holds a wiki component", e);
             // assume false
@@ -160,12 +135,12 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder
     private Map<String, XDOM> getHandledMethods(XWikiDocument componentDocument)
     {
         Map<String, XDOM> handledMethods = new HashMap<String, XDOM>();
-        if (componentDocument.getObjectNumbers(XWIKI_COMPONENT_METHOD_CLASS) > 0) {
-            for (BaseObject method : componentDocument.getObjects(XWIKI_COMPONENT_METHOD_CLASS)) {
-                if (!StringUtils.isBlank(method.getStringValue(COMPONENT_METHOD_NAME_FIELD))) {
+        if (componentDocument.getObjectNumbers(METHOD_CLASS) > 0) {
+            for (BaseObject method : componentDocument.getObjects(METHOD_CLASS)) {
+                if (!StringUtils.isBlank(method.getStringValue(METHOD_NAME_FIELD))) {
                     try {
                         XDOM xdom = parser.parse(new StringReader(method.getStringValue("code")));
-                        handledMethods.put(method.getStringValue(COMPONENT_METHOD_NAME_FIELD), xdom);
+                        handledMethods.put(method.getStringValue(METHOD_NAME_FIELD), xdom);
                     } catch (ParseException e) {
                         // this method will just not be handled
                     }
@@ -182,11 +157,11 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder
     private Class< ? >[] getDeclaredInterfaces(XWikiDocument componentDocument)
     {
         List<Class< ? >> interfaces = new ArrayList<Class< ? >>();
-        if (componentDocument.getObjectNumbers(XWIKI_COMPONENT_INTERFACE_CLASS) > 0) {
-            for (BaseObject iface : componentDocument.getObjects(XWIKI_COMPONENT_INTERFACE_CLASS)) {
-                if (!StringUtils.isBlank(iface.getStringValue(COMPONENT_INTERFACE_NAME_FIELD))) {
+        if (componentDocument.getObjectNumbers(INTERFACE_CLASS) > 0) {
+            for (BaseObject iface : componentDocument.getObjects(INTERFACE_CLASS)) {
+                if (!StringUtils.isBlank(iface.getStringValue(INTERFACE_NAME_FIELD))) {
                     try {
-                        Class< ? > implemented = Class.forName(iface.getStringValue(COMPONENT_INTERFACE_NAME_FIELD));
+                        Class< ? > implemented = Class.forName(iface.getStringValue(INTERFACE_NAME_FIELD));
                         interfaces.add(implemented);
                     } catch (ClassNotFoundException e) {
                         // Silent

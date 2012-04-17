@@ -49,15 +49,10 @@ import org.xwiki.observation.event.Event;
  * @since 4.1M1
  */
 @Component
-@Named(WikiComponentEventListener.NAME)
+@Named("wikiComponentListener")
 @Singleton
 public class WikiComponentEventListener implements EventListener
 {
-    /**
-     * This event listener name. Also used as role hint for this component implementation.
-     */
-    public static final String NAME = "wikiComponentListener";
-
     /**
      * The logger to log.
      */
@@ -88,7 +83,7 @@ public class WikiComponentEventListener implements EventListener
     @Override
     public String getName()
     {
-        return NAME;
+        return "wikiComponentListener";
     }
 
     @Override

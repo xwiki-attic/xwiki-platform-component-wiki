@@ -24,7 +24,7 @@ import org.xwiki.model.reference.DocumentReference;
 
 /**
  * A WikiComponentManager is responsible for registering and unregistering components that are defined as wiki pages.
- * Each {@link WikiComponent} managed by such manager is associated to a {@link org.xwiki.model.DocumentReference}. The
+ * Each {@link WikiComponent} managed by such manager is associated to a {@link DocumentReference}. The
  * referred document contains XObjects that define the role, hint and behavior (method bodies) of the component. This
  * document may also define requirements (other components to be binded in the method bodies execution context) and
  * possible extra interfaces (for example to implement {@link org.xwiki.component.phase.Initializable}).

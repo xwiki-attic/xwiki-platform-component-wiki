@@ -1,4 +1,4 @@
 org.xwiki.component.wiki.internal.DefaultWikiComponentManager
 org.xwiki.component.wiki.internal.DefaultWikiComponentBuilder
-org.xwiki.component.wiki.internal.WikiComponentInitializer
+org.xwiki.component.wiki.internal.WikiComponentInitializerEventListener
 org.xwiki.component.wiki.internal.WikiComponentEventListener

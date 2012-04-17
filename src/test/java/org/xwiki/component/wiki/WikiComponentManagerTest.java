@@ -34,7 +34,8 @@ public class WikiComponentManagerTest extends AbstractComponentTestCase
     @Before
     public void setUp() throws Exception
     {
-        manager = getComponentManager().getInstance(WikiComponentManager.class);
+        super.setUp();
+        this.manager = getComponentManager().getInstance(WikiComponentManager.class);
     }
 
     @Test

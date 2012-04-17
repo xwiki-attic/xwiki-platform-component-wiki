@@ -69,9 +69,7 @@ public class DefaultWikiComponentManager implements WikiComponentManager
      */
     private Set<WikiComponent> registeredComponents = new HashSet<WikiComponent>();
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     @SuppressWarnings("unchecked")
     public void registerWikiComponent(WikiComponent component) throws WikiComponentException
     {
@@ -119,9 +117,7 @@ public class DefaultWikiComponentManager implements WikiComponentManager
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void unregisterWikiComponent(DocumentReference reference) throws WikiComponentException
     {
         for (WikiComponent registered : this.registeredComponents) {

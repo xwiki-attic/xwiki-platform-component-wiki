@@ -49,7 +49,7 @@ import com.xpn.xwiki.user.api.XWikiRightService;
 
 /**
  * Initializes the Wiki Component feature. First ensure all needed XClasses are up-to-date, then registers existing
- * components.
+ * wiki components located in wiki pages.
  * 
  * @version $Id$
  * @since 4.1M1
@@ -57,48 +57,8 @@ import com.xpn.xwiki.user.api.XWikiRightService;
 @Component
 @Named("wikiComponentInitializer")
 @Singleton
-public class WikiComponentInitializer implements EventListener
+public class WikiComponentInitializerEventListener implements EventListener, WikiComponentConstants
 {
-    /**
-     * The XClass defining a component implementation.
-     */
-    private static final String WIKI_COMPONENT_CLASS = "XWiki.ComponentClass";
-
-    /**
-     * The XClass defining a component requirement.
-     */
-    private static final String WIKI_COMPONENT_REQUIREMENT_CLASS = "XWiki.ComponentRequirementClass";
-
-    /**
-     * The XClass defining a component method.
-     */
-    private static final String WIKI_COMPONENT_METHOD_CLASS = "XWiki.ComponentMethodClass";
-
-    /**
-     * The XClass defining a component interface implementation.
-     */
-    private static final String WIKI_COMPONENT_INTERFACE_CLASS = "XWiki.ComponentInterfaceClass";
-
-    /**
-     * The name property of the {@link WIKI_COMPONENT_INTERFACE_CLASS} XClass.
-     */
-    private static final String INTERFACE_NAME_FIELD = "name";
-
-    /**
-     * The name property of the {@link WIKI_COMPONENT_METHOD_CLASS} XClass. (Fix checkstyle).
-     */
-    private static final String METHOD_NAME_FIELD = INTERFACE_NAME_FIELD;
-
-    /**
-     * The role property of both {@link WIKI_COMPONENT_CLASS} and {@link WIKI_COMPONENT_REQUIREMENT_CLASS}.
-     */
-    private static final String COMPONENT_ROLE_HINT_FIELD = "roleHint";
-
-    /**
-     * The role hint property of both {@link WIKI_COMPONENT_CLASS} and {@link WIKI_COMPONENT_REQUIREMENT_CLASS}.
-     */
-    private static final String COMPONENT_ROLE_FIELD = "role";
-
     /**
      * The logger to log.
      */
@@ -123,29 +83,24 @@ public class WikiComponentInitializer implements EventListener
     @Inject
     private WikiComponentBuilder wikiComponentBuilder;
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public List<Event> getEvents()
     {
         return Arrays.<Event> asList(new ApplicationReadyEvent());
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public String getName()
     {
         return "wikiComponentInitializer";
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void onEvent(Event arg0, Object arg1, Object arg2)
     {
         // First step, verify that all XClasses exists and are up-to-date (act if not).
         this.installOrUpdateComponentXClasses();
+
         // Second step, lookup and register existing components.
         this.registerExistingWikiComponents();
     }
@@ -196,17 +151,17 @@ public class WikiComponentInitializer implements EventListener
     }
 
     /**
-     * Verify that the {@link #WIKI_COMPONENT_INTERFACE_CLASS} exists and is up-to-date (act if not).
+     * Verify that the {@link #INTERFACE_CLASS} exists and is up-to-date (act if not).
      * 
      * @throws XWikiException on failure
      */
     private void installOrUpdateComponentInterfaceXClass() throws XWikiException
     {
         XWikiContext xcontext = getXWikiContext();
-        XWikiDocument doc = xcontext.getWiki().getDocument(WIKI_COMPONENT_INTERFACE_CLASS, xcontext);
+        XWikiDocument doc = xcontext.getWiki().getDocument(INTERFACE_CLASS, xcontext);
 
         BaseClass bclass = doc.getXClass();
-        bclass.setName(WIKI_COMPONENT_INTERFACE_CLASS);
+        bclass.setName(INTERFACE_CLASS);
 
         boolean needsUpdate = false;
 
@@ -219,23 +174,23 @@ public class WikiComponentInitializer implements EventListener
     }
 
     /**
-     * Verify that the {@link #WIKI_COMPONENT_CLASS} exists and is up-to-date (act if not).
+     * Verify that the {@link #COMPONENT_CLASS} exists and is up-to-date (act if not).
      * 
      * @throws XWikiException on failure
      */
     private void installOrUpdateComponentXClass() throws XWikiException
     {
         XWikiContext xcontext = getXWikiContext();
-        XWikiDocument doc = xcontext.getWiki().getDocument(WIKI_COMPONENT_CLASS, xcontext);
+        XWikiDocument doc = xcontext.getWiki().getDocument(COMPONENT_CLASS, xcontext);
 
         BaseClass bclass = doc.getXClass();
-        bclass.setName(WIKI_COMPONENT_CLASS);
+        bclass.setName(COMPONENT_CLASS);
 
         boolean needsUpdate = false;
 
-        needsUpdate |= this.initializeXClassDocumentMetadata(doc, "Wiki Component XWiki Class");
-        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_FIELD, "Component role", 30);
-        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_HINT_FIELD, "Component role hint", 30);
+        needsUpdate |= initializeXClassDocumentMetadata(doc, "Wiki Component XWiki Class");
+        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_TYPE_FIELD, "Component Role Type", 30);
+        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_HINT_FIELD, "Component Role Hint", 30);
 
         if (needsUpdate) {
             this.update(doc);
@@ -243,23 +198,23 @@ public class WikiComponentInitializer implements EventListener
     }
 
     /**
-     * Verify that the {@link #WIKI_COMPONENT_REQUIREMENT_CLASS} exists and is up-to-date (act if not).
+     * Verify that the {@link #DEPENDENCY_CLASS} exists and is up-to-date (act if not).
      * 
      * @throws XWikiException on failure
      */
     private void installOrUpdateComponentRequirementXClass() throws XWikiException
     {
         XWikiContext xcontext = getXWikiContext();
-        XWikiDocument doc = xcontext.getWiki().getDocument(WIKI_COMPONENT_REQUIREMENT_CLASS, xcontext);
+        XWikiDocument doc = xcontext.getWiki().getDocument(DEPENDENCY_CLASS, xcontext);
 
         BaseClass bclass = doc.getXClass();
-        bclass.setName(WIKI_COMPONENT_REQUIREMENT_CLASS);
+        bclass.setName(DEPENDENCY_CLASS);
 
         boolean needsUpdate = false;
 
-        needsUpdate |= this.initializeXClassDocumentMetadata(doc, "Wiki Component Requirement XWiki Class");
-        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_FIELD, "Requirement role", 30);
-        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_HINT_FIELD, "Requirement role hint", 30);
+        needsUpdate |= this.initializeXClassDocumentMetadata(doc, "Wiki Component Dependency XWiki Class");
+        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_TYPE_FIELD, "Dependency Role Type", 30);
+        needsUpdate |= bclass.addTextField(COMPONENT_ROLE_HINT_FIELD, "Dependency Role Hint", 30);
         needsUpdate |= bclass.addTextField("bindingName", "Binding name", 30);
         needsUpdate |= bclass.addStaticListField("type", "Requirement type", "single=Single|list=List|map=Map");
 
@@ -269,17 +224,17 @@ public class WikiComponentInitializer implements EventListener
     }
 
     /**
-     * Verify that the {@link #WIKI_COMPONENT_METHOD_CLASS} exists and is up-to-date (act if not).
+     * Verify that the {@link #METHOD_CLASS} exists and is up-to-date (act if not).
      * 
      * @throws XWikiException on failure
      */
     private void installOrUpdateComponentMethodXClass() throws XWikiException
     {
         XWikiContext xcontext = getXWikiContext();
-        XWikiDocument doc = xcontext.getWiki().getDocument(WIKI_COMPONENT_METHOD_CLASS, xcontext);
+        XWikiDocument doc = xcontext.getWiki().getDocument(METHOD_CLASS, xcontext);
 
         BaseClass bclass = doc.getXClass();
-        bclass.setName(WIKI_COMPONENT_METHOD_CLASS);
+        bclass.setName(METHOD_CLASS);
 
         boolean needsUpdate = false;
 
@@ -347,5 +302,4 @@ public class WikiComponentInitializer implements EventListener
     {
         return (XWikiContext) this.execution.getContext().getProperty("xwikicontext");
     }
-
 }

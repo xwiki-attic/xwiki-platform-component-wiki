@@ -20,7 +20,7 @@
 package org.xwiki.component.wiki;
 
 /**
- * Exception thrown by component builders when a document holds an invalid compoentn definition.
+ * Exception thrown by component builders when a document holds an invalid component definition.
  * (For example if no role has been specified).
  * 
  * @version $Id$

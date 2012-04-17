@@ -73,41 +73,31 @@ public class DefaultWikiComponent implements WikiComponent
         this.roleHint = roleHint;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public DocumentReference getDocumentReference()
     {
         return this.documentReference;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Map<String, XDOM> getHandledMethods()
     {
         return this.handledMethods;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Class< ? > getRole()
     {
         return this.role;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public String getRoleHint()
     {
         return this.roleHint;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Class< ? >[] getImplementedInterfaces()
     {
         return this.implementedInterfaces;

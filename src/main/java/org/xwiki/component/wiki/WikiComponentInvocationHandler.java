@@ -116,20 +116,16 @@ public class WikiComponentInvocationHandler implements InvocationHandler
     /**
      * Constructor of this invocation handler.
      * 
-     * @param componentReference reference to the document holding the component definition
-     * @param methods the map of methods handled by the component instance
+     * @param wikiComponent the proxied wiki component
      * @param componentManager the component manager
      */
-    public WikiComponentInvocationHandler(WikiComponent wikiComponent,
-        ComponentManager componentManager)
+    public WikiComponentInvocationHandler(WikiComponent wikiComponent, ComponentManager componentManager)
     {
         this.wikiComponent = wikiComponent;
         this.componentManager = componentManager;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable
     {
         if (!this.wikiComponent.getHandledMethods().containsKey(method.getName())) {
