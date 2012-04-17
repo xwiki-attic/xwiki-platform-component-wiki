@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xpn.xwiki.internal;
+package org.xwiki.component.wiki.internal;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -36,7 +36,6 @@ import org.xwiki.component.wiki.InvalidComponentDefinitionException;
 import org.xwiki.component.wiki.WikiComponent;
 import org.xwiki.component.wiki.WikiComponentBuilder;
 import org.xwiki.component.wiki.WikiComponentException;
-import org.xwiki.component.wiki.internal.DefaultWikiComponent;
 import org.xwiki.context.Execution;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.rendering.block.XDOM;
@@ -51,8 +50,8 @@ import com.xpn.xwiki.objects.BaseObject;
 /**
  * Default implementation of a wiki component builder, that is using the legacy XWiki core module.
  * 
- * @since 2.4-M2
  * @version $Id$
+ * @since 4.1M1
  */
 @Component
 @Singleton
