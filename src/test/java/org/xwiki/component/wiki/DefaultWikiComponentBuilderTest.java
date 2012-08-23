@@ -26,6 +26,7 @@ import java.util.Vector;
 
 import org.jmock.Expectations;
 import org.jmock.lib.legacy.ClassImposteriser;
+import org.junit.Before;
 import org.junit.Test;
 import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.component.wiki.internal.DefaultWikiComponentBuilder;
@@ -75,6 +76,8 @@ import junit.framework.Assert;
     DefaultEntityReferenceValueProvider.class,
     CompactWikiStringEntityReferenceSerializer.class
 })
+@MockingRequirement(value = DefaultWikiComponentBuilder.class,
+    exceptions = {EntityReferenceSerializer.class, Parser.class})
 public class DefaultWikiComponentBuilderTest extends AbstractMockingComponentTestCase implements WikiComponentConstants
 {
     private static final DocumentReference DOC_REFERENCE = new DocumentReference("xwiki", "XWiki", "MyComponent");
@@ -87,14 +90,12 @@ public class DefaultWikiComponentBuilderTest extends AbstractMockingComponentTes
 
     private XWikiDocument componentDoc;
 
-    @MockingRequirement(exceptions = {EntityReferenceSerializer.class, Parser.class})
-    private DefaultWikiComponentBuilder provider;
+    private WikiComponentBuilder provider;
 
-    @Override
-    public void setUp() throws Exception
+    @Before
+    public void configure() throws Exception
     {
         getMockery().setImposteriser(ClassImposteriser.INSTANCE);
-        super.setUp();
 
         Utils.setComponentManager(getComponentManager());
 
@@ -122,6 +123,8 @@ public class DefaultWikiComponentBuilderTest extends AbstractMockingComponentTes
                 will(returnValue(Syntax.XWIKI_2_0));
             }
         });
+
+        this.provider = getComponentManager().getInstance(WikiComponentBuilder.class);
     }
 
     @Test

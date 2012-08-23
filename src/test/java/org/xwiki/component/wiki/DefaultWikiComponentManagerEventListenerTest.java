@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jmock.Expectations;
+import org.junit.Before;
 import org.junit.Test;
 import org.xwiki.bridge.DocumentModelBridge;
 import org.xwiki.bridge.event.ApplicationReadyEvent;
@@ -33,9 +34,11 @@ import org.xwiki.component.wiki.internal.DefaultWikiComponent;
 import org.xwiki.component.wiki.internal.DefaultWikiComponentManagerEventListener;
 import org.xwiki.component.wiki.internal.WikiComponentConstants;
 import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.observation.EventListener;
 import org.xwiki.test.AbstractMockingComponentTestCase;
 import org.xwiki.test.annotation.MockingRequirement;
 
+@MockingRequirement(DefaultWikiComponentManagerEventListener.class)
 public class DefaultWikiComponentManagerEventListenerTest extends AbstractMockingComponentTestCase implements
     WikiComponentConstants
 {
@@ -43,18 +46,17 @@ public class DefaultWikiComponentManagerEventListenerTest extends AbstractMockin
 
     private static final DocumentReference DOC_REFERENCE = new DocumentReference("xwiki", "XWiki", "MyComponent");
 
-    @MockingRequirement
     private DefaultWikiComponentManagerEventListener listener;
 
     private WikiComponentBuilder provider;
 
-    @Test
-    public void setupDependencies() throws Exception
+    @Before
+    public void configure() throws Exception
     {
-        if (this.provider == null) {
-            this.provider =
-                getComponentManager().registerMockComponent(getMockery(), WikiComponentBuilder.class, "default");
-        }
+        this.provider =
+            getComponentManager().registerMockComponent(getMockery(), WikiComponentBuilder.class, "default");
+        this.listener =
+            getComponentManager().getInstance(EventListener.class, "defaultWikiComponentManagerEventListener");
     }
 
     @Test

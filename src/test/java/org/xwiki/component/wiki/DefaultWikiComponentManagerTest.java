@@ -24,6 +24,7 @@ import java.lang.reflect.Type;
 import junit.framework.Assert;
 
 import org.jmock.Expectations;
+import org.junit.Before;
 import org.junit.Test;
 import org.xwiki.component.descriptor.ComponentDescriptor;
 import org.xwiki.component.manager.ComponentManager;
@@ -33,14 +34,20 @@ import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.test.AbstractMockingComponentTestCase;
 import org.xwiki.test.annotation.MockingRequirement;
 
+@MockingRequirement(DefaultWikiComponentManager.class)
 public class DefaultWikiComponentManagerTest extends AbstractMockingComponentTestCase
 {
     private static final DocumentReference DOC_REFERENCE = new DocumentReference("xwiki", "XWiki", "MyComponent");
 
     private final DefaultWikiComponent component = new DefaultWikiComponent(DOC_REFERENCE, TestRole.class, "roleHint");
 
-    @MockingRequirement
-    private DefaultWikiComponentManager manager;
+    private WikiComponentManager manager;
+
+    @Before
+    public void configure() throws Exception
+    {
+        this.manager = getComponentManager().getInstance(WikiComponentManager.class);
+    }
 
     @Test
     public void registerWikiComponent() throws Exception
