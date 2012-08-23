@@ -27,9 +27,7 @@ import java.util.Vector;
 import org.jmock.Expectations;
 import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Test;
-import org.slf4j.Logger;
 import org.xwiki.component.manager.ComponentManager;
-import org.xwiki.component.util.ReflectionUtils;
 import org.xwiki.component.wiki.internal.DefaultWikiComponentBuilder;
 import org.xwiki.component.wiki.internal.WikiComponentConstants;
 import org.xwiki.context.Execution;
@@ -89,8 +87,6 @@ public class DefaultWikiComponentBuilderTest extends AbstractMockingComponentTes
 
     private XWikiDocument componentDoc;
 
-    private Logger logger;
-
     @MockingRequirement(exceptions = {EntityReferenceSerializer.class, Parser.class})
     private DefaultWikiComponentBuilder provider;
 
@@ -104,8 +100,6 @@ public class DefaultWikiComponentBuilderTest extends AbstractMockingComponentTes
 
         final Execution execution = getComponentManager().getInstance(Execution.class);
         final ExecutionContext context = new ExecutionContext();
-        // Set a mock Logger to capture all log outputs and perform verifications
-        this.logger = getMockery().mock(Logger.class);
 
         this.xwiki = getMockery().mock(XWiki.class);
 
@@ -250,7 +244,6 @@ public class DefaultWikiComponentBuilderTest extends AbstractMockingComponentTes
         final XDOM xdom = new XDOM(new ArrayList<Block>());
         methodObjects.add(methodObject);
         interfaceObjects.add(interfaceObject);
-        ReflectionUtils.setFieldValue(this.provider, "logger", this.logger);
 
         getMockery().checking(new Expectations()
         {
@@ -285,7 +278,7 @@ public class DefaultWikiComponentBuilderTest extends AbstractMockingComponentTes
                 will(returnValue(xdom));
                 oneOf(componentManager).getInstance(Parser.class, Syntax.XWIKI_2_0.toIdString());
                 will(returnValue(parser));
-                oneOf(logger).warn("Interface [{}] not found, declared for wiki component [{}]",
+                oneOf(getMockLogger()).warn("Interface [{}] not found, declared for wiki component [{}]",
                     "an.interface.which.does.not.Exist", "xwiki:XWiki.MyComponent");
             }
         });
