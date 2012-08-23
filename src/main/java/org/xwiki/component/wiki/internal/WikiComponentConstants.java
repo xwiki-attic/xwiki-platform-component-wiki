@@ -19,28 +19,35 @@
  */
 package org.xwiki.component.wiki.internal;
 
+import com.xpn.xwiki.user.api.XWikiRightService;
+
 /**
  * Constants for XClasses and XProperties.
  *
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 public interface WikiComponentConstants
 {
     /**
+     * Author of the XClass documents.
+     */
+    String CLASS_AUTHOR = XWikiRightService.SUPERADMIN_USER;
+
+    /**
      * The XClass defining a component implementation.
      */
-    String COMPONENT_CLASS = "Component.ComponentClass";
+    String COMPONENT_CLASS = "XWiki.ComponentClass";
 
     /**
      * The XClass defining a component injection.
      */
-    String DEPENDENCY_CLASS = "Component.ComponentDependencyClass";
+    String DEPENDENCY_CLASS = "XWiki.ComponentDependencyClass";
 
     /**
      * The XClass defining a component method.
      */
-    String METHOD_CLASS = "Component.ComponentMethodClass";
+    String METHOD_CLASS = "XWiki.ComponentMethodClass";
 
     /**
      * The XClass defining a component interface implementation.
@@ -56,6 +63,11 @@ public interface WikiComponentConstants
      * The name property of the {@link #METHOD_CLASS} XClass.
      */
     String METHOD_NAME_FIELD = INTERFACE_NAME_FIELD;
+
+    /**
+     * The code property of the {@link #METHOD_CLASS} XClass.
+     */
+    String METHOD_CODE_FIELD = "code";
 
     /**
      * The role hint property of both {@link #COMPONENT_CLASS} and {@link #DEPENDENCY_CLASS}.

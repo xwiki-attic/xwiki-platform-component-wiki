@@ -17,32 +17,12 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.xwiki.component.wiki.internal;
+package org.xwiki.component.wiki;
 
-import org.xwiki.component.wiki.MethodOutputHandler;
+import org.xwiki.component.annotation.Role;
 
-/**
- * Default method output handler.
- * 
- * @version $Id$
- * @since 4.2M3
- */
-public class DefaultMethodOutputHandler implements MethodOutputHandler
+@Role
+public interface TestRole
 {
-    /**
-     * The stored return value.
-     */
-    private Object returnValue;
-
-    @Override
-    public void returnValue(Object value)
-    {
-        this.returnValue = value;
-    }
-
-    @Override
-    public Object getReturnValue()
-    {
-        return this.returnValue;
-    }
+    String test();
 }

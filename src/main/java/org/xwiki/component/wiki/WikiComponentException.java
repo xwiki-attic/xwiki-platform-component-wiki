@@ -23,7 +23,7 @@ package org.xwiki.component.wiki;
  * A generic exception thrown by this module, usually a wrapper around lower level exceptions.
  *
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 public class WikiComponentException extends Exception
 {

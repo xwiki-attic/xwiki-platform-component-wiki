@@ -30,7 +30,7 @@ import org.xwiki.model.reference.DocumentReference;
  * possible extra interfaces (for example to implement {@link org.xwiki.component.phase.Initializable}).
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 @Role
 public interface WikiComponentManager
@@ -44,10 +44,10 @@ public interface WikiComponentManager
     void registerWikiComponent(WikiComponent component) throws WikiComponentException;
 
     /**
-     * Unregisters the wiki component associated with the passed reference.
+     * Unregisters the wiki component(s) associated with the passed reference.
      * 
      * @param reference the reference to the document holding the component to unregister
      * @throws WikiComponentException when failed to unregister the component from the CM.
      */
-    void unregisterWikiComponent(DocumentReference reference) throws WikiComponentException;
+    void unregisterWikiComponents(DocumentReference reference) throws WikiComponentException;
 }

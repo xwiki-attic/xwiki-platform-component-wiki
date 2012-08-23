@@ -19,6 +19,7 @@
  */
 package org.xwiki.component.wiki;
 
+import java.util.List;
 import java.util.Map;
 
 import org.xwiki.model.reference.DocumentReference;
@@ -28,7 +29,7 @@ import org.xwiki.rendering.block.XDOM;
  * Represents the definition of a wiki component implementation.
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 public interface WikiComponent
 {
@@ -46,12 +47,12 @@ public interface WikiComponent
      * @return the hint of the role implemented by this component implementation.
      */
     String getRoleHint();
-    
+
     /**
      * @return the extra list of interfaces this component implementation implements.
      */
-    Class< ? >[] getImplementedInterfaces();
-    
+    List<Class< ? >> getImplementedInterfaces();
+
     /**
      * @return the map of method name/wiki code this component implementation handles. 
      */

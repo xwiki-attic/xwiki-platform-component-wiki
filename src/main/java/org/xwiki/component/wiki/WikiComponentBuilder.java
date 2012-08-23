@@ -19,34 +19,35 @@
  */
 package org.xwiki.component.wiki;
 
+import java.util.List;
+
 import org.xwiki.component.annotation.Role;
 import org.xwiki.model.reference.DocumentReference;
 
 /**
- * Constructs a {@link WikiComponent} out of the data contained in the document pointed by a {@link DocumentReference}.
- * 
+ * Allows to provide a list of documents holding one or more {@link WikiComponent}, and to build components from those
+ * documents.
+ *
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 @Role
 public interface WikiComponentBuilder
 {
     /**
-     * Builds a wiki component representation extracting the data stored as objects of document.
+     * Get the list of documents holding components.
+     *
+     * @return the list of documents holding components
+     */
+    List<DocumentReference> getDocumentReferences();
+
+    /**
+     * Build the components defined in a document XObjects. Being able to define more than one component in a document
+     * depends on the implementation.
      * 
      * @param reference the reference to the document that holds component definition objects
      * @return the constructed component definition
-     * @throws InvalidComponentDefinitionException when the data in the document is not a valid component definition
-     * @throws WikiComponentException the builder failed to create the component out of the document (for example due to
-     *             a failure by tge underlying store, etc.)
+     * @throws WikiComponentException when the document contains invalid component definition(s)
      */
-    WikiComponent build(DocumentReference reference) throws InvalidComponentDefinitionException, WikiComponentException;
-
-    /**
-     * Checks if the document corresponding to the passed reference contains a wiki component definition.
-     * 
-     * @param reference the reference of the document to check
-     * @return true if the document contains a wiki component definition, false otherwise
-     */
-    boolean containsWikiComponent(DocumentReference reference);
+    List<WikiComponent> buildComponents(DocumentReference reference) throws WikiComponentException;
 }

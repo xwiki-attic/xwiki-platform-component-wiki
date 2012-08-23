@@ -19,7 +19,9 @@
  */
 package org.xwiki.component.wiki.internal;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.xwiki.component.wiki.WikiComponent;
@@ -30,7 +32,7 @@ import org.xwiki.rendering.block.XDOM;
  * Default implementation of a wiki component definition.
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 public class DefaultWikiComponent implements WikiComponent
 {
@@ -57,7 +59,7 @@ public class DefaultWikiComponent implements WikiComponent
     /**
      * @see {@link #getImplementedInterfaces()}
      */
-    private Class< ? >[] implementedInterfaces = new Class< ? >[]{};
+    private List<Class< ? >> implementedInterfaces = new ArrayList<Class< ? >>();
 
     /**
      * Constructor of this component.
@@ -98,7 +100,7 @@ public class DefaultWikiComponent implements WikiComponent
     }
 
     @Override
-    public Class< ? >[] getImplementedInterfaces()
+    public List<Class< ? >> getImplementedInterfaces()
     {
         return this.implementedInterfaces;
     }
@@ -117,14 +119,13 @@ public class DefaultWikiComponent implements WikiComponent
 
     /**
      * Sets the implemented interfaces.
-     * 
+     *
      * @see {@link #getImplementedInterfaces()}
-     * 
-     * @param interfaces the interfaces this component will implement.
+     *
+     * @param interfaces the interfaces this component implements.
      */
-    public void setImplementedInterfaces(Class< ? >[] interfaces)
+    public void setImplementedInterfaces(List<Class< ? >> interfaces)
     {
         this.implementedInterfaces = interfaces;
     }
-
 }

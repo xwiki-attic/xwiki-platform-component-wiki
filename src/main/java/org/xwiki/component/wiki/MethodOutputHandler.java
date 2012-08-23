@@ -24,7 +24,7 @@ package org.xwiki.component.wiki;
  * wiki method execution, so that such method scripts can return a value using {@link #returnValue(Object)}.
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 public interface MethodOutputHandler
 {

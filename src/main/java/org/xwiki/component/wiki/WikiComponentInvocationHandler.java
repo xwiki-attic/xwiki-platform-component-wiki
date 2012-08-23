@@ -21,6 +21,7 @@ package org.xwiki.component.wiki;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,14 +37,17 @@ import org.xwiki.rendering.renderer.printer.DefaultWikiPrinter;
 import org.xwiki.rendering.renderer.printer.WikiPrinter;
 import org.xwiki.rendering.syntax.Syntax;
 import org.xwiki.rendering.transformation.Transformation;
+import org.xwiki.rendering.transformation.TransformationContext;
 import org.xwiki.rendering.transformation.TransformationException;
+
+import com.xpn.xwiki.XWikiContext;
 
 /**
  * Method invocation handler for wiki component proxy instances. Has a reference on a map of name/body wiki code of
  * supported methods.
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 public class WikiComponentInvocationHandler implements InvocationHandler
 {
@@ -128,6 +132,19 @@ public class WikiComponentInvocationHandler implements InvocationHandler
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable
     {
+        Method componentMethods[] = this.wikiComponent.getClass().getDeclaredMethods();
+
+        // We look at the methods in the Class, in case it implements the method.
+        if (method.getDeclaringClass().isAssignableFrom(this.wikiComponent.getClass()))
+        {
+            for (Method componentMethod : componentMethods) {
+                if (method.getName().equals(componentMethod.getName())) {
+                    return method.invoke(this.wikiComponent, args);
+                }
+            }
+        }
+
+        // We look for the method in the XObjects.
         if (!this.wikiComponent.getHandledMethods().containsKey(method.getName())) {
             if (method.getDeclaringClass() == Object.class) {
                 return this.proxyObjectMethod(proxy, method, args);
@@ -137,7 +154,6 @@ public class WikiComponentInvocationHandler implements InvocationHandler
         } else {
             return this.executeWikiContent(proxy, method, args);
         }
-
     }
 
     /**
@@ -150,8 +166,6 @@ public class WikiComponentInvocationHandler implements InvocationHandler
     @SuppressWarnings("unchecked")
     private Object executeWikiContent(Object proxy, Method method, Object[] args) throws Exception
     {
-        Map xwikiContext;
-
         XDOM xdom = this.wikiComponent.getHandledMethods().get(method.getName());
 
         Execution execution = componentManager.getInstance(Execution.class);
@@ -174,36 +188,47 @@ public class WikiComponentInvocationHandler implements InvocationHandler
         methodContext.put(METHOD_CONTEXT_INPUT_KEY, inputs);
         
         // Place macro context inside xwiki context ($context.macro).
-        xwikiContext = (Map) execution.getContext().getProperty("xwikicontext");
+        XWikiContext xwikiContext = (XWikiContext) execution.getContext().getProperty("xwikicontext");
         xwikiContext.put("method", methodContext);
-        // Save current context document.
-        // TODO: Problem here: contextDoc is not used!!!
+        // Save current context document, to put it back after the execution.
         Object contextDoc = xwikiContext.get(XWIKI_CONTEXT_DOC_KEY);
         // Make sure has prog rights
         xwikiContext.put(XWIKI_CONTEXT_DOC_KEY, docBridge.getDocument(this.wikiComponent.getDocumentReference()));
 
-        // Perform internal macro transformations.
         try {
-            macroTransformation.transform(xdom, Syntax.XWIKI_2_0);
-        } catch (TransformationException e) {
-            LOGGER.error("Error while executing wiki component macro transformation for method [{}]",
-                method.getName(), e);
-        }
+            // Perform internal macro transformations.
+            try {
+                Syntax syntax =
+                    xwikiContext.getWiki().getDocument(this.wikiComponent.getDocumentReference(),
+                        xwikiContext).getSyntax();
+                TransformationContext transformationContext = new TransformationContext(xdom, syntax);
+                transformationContext.setId(method.getClass().getName() + "#" + method.getName());
+                // We need to clone the xdom to avoid transforming the original and make it useless after the first
+                // transformation
+                XDOM transformedXDOM = xdom.clone();
+                macroTransformation.transform(transformedXDOM, transformationContext);
+            } catch (TransformationException e) {
+                LOGGER.error("Error while executing wiki component macro transformation for method [{}]",
+                    method.getName(), e);
+            }
 
-        if (methodContext.get(METHOD_CONTEXT_OUTPUT_KEY) != null
-            && ((MethodOutputHandler) methodContext.get(METHOD_CONTEXT_OUTPUT_KEY)).getReturnValue() != null) {
-            return method.getReturnType().cast(((MethodOutputHandler)
-                methodContext.get(METHOD_CONTEXT_OUTPUT_KEY)).getReturnValue());
-        } else if (method.getReturnType().equals(String.class)) {
-            // If return type is String and no specific return value has been provided during the macro
-            // expansion, then we return the content redered as
-            WikiPrinter printer = new DefaultWikiPrinter();
-            BlockRenderer renderer = componentManager.getInstance(BlockRenderer.class, Syntax.PLAIN_1_0.toIdString());
-            renderer.render(xdom, printer);
-            return printer.toString();
-        } else {
-            // surrender
-            return null;
+            if (methodContext.get(METHOD_CONTEXT_OUTPUT_KEY) != null
+                && ((MethodOutputHandler) methodContext.get(METHOD_CONTEXT_OUTPUT_KEY)).getReturnValue() != null) {
+                return method.getReturnType().cast(((MethodOutputHandler)
+                    methodContext.get(METHOD_CONTEXT_OUTPUT_KEY)).getReturnValue());
+            } else if (method.getReturnType().equals(String.class)) {
+                // If return type is String and no specific return value has been provided during the macro
+                // expansion, then we return the content rendered as is
+                WikiPrinter printer = new DefaultWikiPrinter();
+                BlockRenderer renderer = componentManager.getInstance(BlockRenderer.class, Syntax.PLAIN_1_0.toIdString());
+                renderer.render(xdom, printer);
+                return printer.toString();
+            } else {
+                // surrender
+                return null;
+            }
+        } finally {
+            xwikiContext.put(XWIKI_CONTEXT_DOC_KEY, contextDoc);
         }
     }
 

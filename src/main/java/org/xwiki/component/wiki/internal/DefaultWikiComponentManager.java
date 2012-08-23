@@ -21,7 +21,9 @@ package org.xwiki.component.wiki.internal;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -46,7 +48,7 @@ import org.xwiki.model.reference.DocumentReference;
  * reference on a set of declared method and associated wiki content to "execute".
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 @Component
 @Singleton
@@ -62,7 +64,7 @@ public class DefaultWikiComponentManager implements WikiComponentManager
      * Component manager against which wiki component will be registered.
      */
     @Inject
-    private ComponentManager mainComponentManager;
+    private ComponentManager componentManager;
 
     /**
      * Reference on all registered components.
@@ -82,23 +84,36 @@ public class DefaultWikiComponentManager implements WikiComponentManager
             Class< ? > role = component.getRole();
 
             // Create the method invocation handler of the proxy
-            InvocationHandler handler = new WikiComponentInvocationHandler(component, mainComponentManager);
+            InvocationHandler handler = new WikiComponentInvocationHandler(component, componentManager);
 
-            // Prepare array of all interfaces the component implementation declares, that is the interface declared as
-            // component role
-            // plus possible extra other interfaces
-            Class< ? >[] allImplementedInterfaces = new Class< ? >[component.getImplementedInterfaces().length + 1];
-            System.arraycopy(component.getImplementedInterfaces(), 0, allImplementedInterfaces, 0, component
-                .getImplementedInterfaces().length);
-            allImplementedInterfaces[component.getImplementedInterfaces().length] = role;
+            // Prepare a list containing the interfaces the component implements
+            List<Class<?>> implementedInterfaces = new ArrayList<Class<?>>();
+
+            // Add all the interfaces declared through XObjects
+            implementedInterfaces.addAll(component.getImplementedInterfaces());
+
+            // If the component is a Java classes extending the default WikiComponent interface, we add all the
+            // interfaces it implements to the list, except the WikiComponent one of course.
+            for (Class<?> implementedInterface : component.getClass().getInterfaces()) {
+                if (implementedInterface != WikiComponent.class) {
+                    implementedInterfaces.add(implementedInterface);
+                }
+            }
+
+            // If the component is a pure XObject implementation, we need to add the role interface to the list, since
+            // it's not been added by the previous loops.
+            if (!implementedInterfaces.contains(role)) {
+                implementedInterfaces.add(role);
+            }
 
             // Create the component instance and its descriptor
-            Object instance = Proxy.newProxyInstance(role.getClassLoader(), allImplementedInterfaces, handler);
+            Class< ? >[] implementedInterfacesArray = implementedInterfaces.toArray(new Class<?>[0]);
+            Object instance = Proxy.newProxyInstance(role.getClassLoader(), implementedInterfacesArray, handler);
             ComponentDescriptor componentDescriptor = this.createComponentDescriptor(role, component.getRoleHint());
 
             // Since we are responsible to create the component instance,
             // we also are responsible of its initialization (if needed)
-            if (this.isInitializable(allImplementedInterfaces)) {
+            if (this.isInitializable(implementedInterfaces)) {
                 try {
                     ((Initializable) instance).initialize();
                 } catch (InitializationException e) {
@@ -107,7 +122,7 @@ public class DefaultWikiComponentManager implements WikiComponentManager
             }
 
             // Finally, register the component against the CM
-            this.mainComponentManager.registerComponent(componentDescriptor, role.cast(instance));
+            componentManager.registerComponent(componentDescriptor, role.cast(instance));
             
             // And hold a reference to it.
             this.registeredComponents.add(component);
@@ -118,15 +133,21 @@ public class DefaultWikiComponentManager implements WikiComponentManager
     }
 
     @Override
-    public void unregisterWikiComponent(DocumentReference reference) throws WikiComponentException
+    public void unregisterWikiComponents(DocumentReference reference)
     {
+        WikiComponent unregisteredComponent = null;
+
         for (WikiComponent registered : this.registeredComponents) {
             if (registered.getDocumentReference().equals(reference)) {
                 // Unregister component
-                this.mainComponentManager.unregisterComponent(registered.getRole(), registered.getRoleHint());
-                // Remove reference
-                this.registeredComponents.remove(registered);
+                unregisteredComponent = registered;
+                componentManager.unregisterComponent(registered.getRole(), registered.getRoleHint());
             }
+        }
+
+        // Remove reference
+        if (unregisteredComponent != null) {
+            this.registeredComponents.remove(unregisteredComponent);
         }
     }
     
@@ -152,7 +173,7 @@ public class DefaultWikiComponentManager implements WikiComponentManager
      * @param interfaces the array of interfaces to test
      * @return true if at least one of the passed interfaces is the is the {@link Initializable} class.
      */
-    private boolean isInitializable(Class< ? >[] interfaces)
+    private boolean isInitializable(List<Class< ? >> interfaces)
     {
         for (Class< ? > iface : interfaces) {
             if (Initializable.class.equals(iface)) {

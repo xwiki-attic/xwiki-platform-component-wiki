@@ -30,13 +30,8 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.xwiki.bridge.event.ApplicationReadyEvent;
 import org.xwiki.component.annotation.Component;
-import org.xwiki.component.wiki.InvalidComponentDefinitionException;
-import org.xwiki.component.wiki.WikiComponent;
-import org.xwiki.component.wiki.WikiComponentBuilder;
-import org.xwiki.component.wiki.WikiComponentException;
-import org.xwiki.component.wiki.WikiComponentManager;
 import org.xwiki.context.Execution;
-import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.model.reference.EntityReferenceSerializer;
 import org.xwiki.observation.EventListener;
 import org.xwiki.observation.event.Event;
 import org.xwiki.rendering.syntax.Syntax;
@@ -45,19 +40,17 @@ import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.classes.BaseClass;
-import com.xpn.xwiki.user.api.XWikiRightService;
 
 /**
- * Initializes the Wiki Component feature. First ensure all needed XClasses are up-to-date, then registers existing
- * wiki components located in wiki pages.
+ * Initializes the XClasses required by {@link DefaultWikiComponentBuilder}.
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 @Component
-@Named("wikiComponentInitializer")
+@Named("defaultWikiComponentBuilderEventListener")
 @Singleton
-public class WikiComponentInitializerEventListener implements EventListener, WikiComponentConstants
+public class DefaultWikiComponentBuilderEventListener implements EventListener, WikiComponentConstants
 {
     /**
      * The logger to log.
@@ -72,16 +65,11 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
     private Execution execution;
 
     /**
-     * The wiki component manager that knows how to register component definition against the underlying CM.
+     * Used to serialize wiki pages reference in the log.
      */
     @Inject
-    private WikiComponentManager wikiComponentManager;
-
-    /**
-     * Builder that creates component description from document references.
-     */
-    @Inject
-    private WikiComponentBuilder wikiComponentBuilder;
+    @Named("compactwiki")
+    private EntityReferenceSerializer<String> compactWikiSerializer;
 
     @Override
     public List<Event> getEvents()
@@ -92,53 +80,11 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
     @Override
     public String getName()
     {
-        return "wikiComponentInitializer";
+        return "defaultWikiComponentBuilderEventListener";
     }
 
     @Override
     public void onEvent(Event arg0, Object arg1, Object arg2)
-    {
-        // First step, verify that all XClasses exists and are up-to-date (act if not).
-        this.installOrUpdateComponentXClasses();
-
-        // Second step, lookup and register existing components.
-        this.registerExistingWikiComponents();
-    }
-
-    /**
-     * Registers existing components. Query them against the store, and if they are built properly (valid definition)
-     * register them against the CM.
-     */
-    private void registerExistingWikiComponents()
-    {
-        String query =
-            ", BaseObject as obj, StringProperty as role where obj.className='XWiki.ComponentClass'"
-                + " and obj.name=doc.fullName and role.id.id=obj.id and role.id.name='role' and role.value <>''";
-        try {
-            for (DocumentReference ref : getXWikiContext().getWiki().getStore().searchDocumentReferences(query,
-                getXWikiContext())) {
-                try {
-                    WikiComponent component = this.wikiComponentBuilder.build(ref);
-
-                    this.wikiComponentManager.registerWikiComponent(component);
-                } catch (InvalidComponentDefinitionException e) {
-                    // Fail quietly and only log at the debug level.
-                    this.logger.debug("Invalid wiki component definition for reference [{}]", ref.toString(), e);
-                } catch (WikiComponentException e) {
-                    // Fail quietly and only log at the debug level.
-                    this.logger.debug("Failed to register wiki component for reference [{}]", ref.toString(), e);
-                }
-            }
-        } catch (XWikiException e) {
-            this.logger.error("Failed to register existing wiki components", e);
-        }
-
-    }
-
-    /**
-     * Verify that all XClasses exists and are up-to-date (act if not).
-     */
-    private void installOrUpdateComponentXClasses()
     {
         try {
             this.installOrUpdateComponentXClass();
@@ -152,8 +98,8 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
 
     /**
      * Verify that the {@link #INTERFACE_CLASS} exists and is up-to-date (act if not).
-     * 
-     * @throws XWikiException on failure
+     *
+     * @throws com.xpn.xwiki.XWikiException on failure
      */
     private void installOrUpdateComponentInterfaceXClass() throws XWikiException
     {
@@ -175,7 +121,7 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
 
     /**
      * Verify that the {@link #COMPONENT_CLASS} exists and is up-to-date (act if not).
-     * 
+     *
      * @throws XWikiException on failure
      */
     private void installOrUpdateComponentXClass() throws XWikiException
@@ -199,7 +145,7 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
 
     /**
      * Verify that the {@link #DEPENDENCY_CLASS} exists and is up-to-date (act if not).
-     * 
+     *
      * @throws XWikiException on failure
      */
     private void installOrUpdateComponentRequirementXClass() throws XWikiException
@@ -225,7 +171,7 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
 
     /**
      * Verify that the {@link #METHOD_CLASS} exists and is up-to-date (act if not).
-     * 
+     *
      * @throws XWikiException on failure
      */
     private void installOrUpdateComponentMethodXClass() throws XWikiException
@@ -240,7 +186,7 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
 
         needsUpdate |= this.initializeXClassDocumentMetadata(doc, "Wiki Component Method XWiki Class");
         needsUpdate |= bclass.addTextField(METHOD_NAME_FIELD, "Method name", 30);
-        needsUpdate |= bclass.addTextAreaField("code", "Method body code", 40, 20);
+        needsUpdate |= bclass.addTextAreaField(METHOD_CODE_FIELD, "Method body code", 40, 20);
 
         if (needsUpdate) {
             this.update(doc);
@@ -249,7 +195,7 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
 
     /**
      * Utility method for updating a wiki macro class definition document.
-     * 
+     *
      * @param doc xwiki document containing the wiki macro class.
      * @throws XWikiException if an error occurs while saving the document.
      */
@@ -262,7 +208,7 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
     /**
      * Helper method to prepare a document that will hold an XClass definition, setting its initial metadata, if needed
      * (author, title, parent, content, etc.).
-     * 
+     *
      * @param doc the document to prepare
      * @param title the title to set
      * @return true if the doc has been modified and needs saving, false otherwise
@@ -273,7 +219,7 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
 
         if (StringUtils.isBlank(doc.getCreator())) {
             needsUpdate = true;
-            doc.setCreator(XWikiRightService.SUPERADMIN_USER);
+            doc.setCreator(CLASS_AUTHOR);
         }
         if (StringUtils.isBlank(doc.getAuthor())) {
             needsUpdate = true;
@@ -292,6 +238,11 @@ public class WikiComponentInitializerEventListener implements EventListener, Wik
             doc.setContent("{{include document=\"XWiki.ClassSheet\" /}}");
             doc.setSyntax(Syntax.XWIKI_2_0);
         }
+        if (!doc.isHidden()) {
+            needsUpdate = true;
+            doc.setHidden(true);
+        }
+
         return needsUpdate;
     }
 

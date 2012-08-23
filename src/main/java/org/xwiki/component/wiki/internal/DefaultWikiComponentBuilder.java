@@ -26,20 +26,18 @@ import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.xwiki.component.annotation.Component;
-import org.xwiki.component.wiki.InvalidComponentDefinitionException;
+import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.component.wiki.WikiComponent;
 import org.xwiki.component.wiki.WikiComponentBuilder;
 import org.xwiki.component.wiki.WikiComponentException;
 import org.xwiki.context.Execution;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.rendering.block.XDOM;
-import org.xwiki.rendering.parser.ParseException;
 import org.xwiki.rendering.parser.Parser;
 
 import com.xpn.xwiki.XWikiContext;
@@ -51,7 +49,7 @@ import com.xpn.xwiki.objects.BaseObject;
  * Default implementation of a wiki component builder, that is using the legacy XWiki core module.
  * 
  * @version $Id$
- * @since 4.1M1
+ * @since 4.2M3
  */
 @Component
 @Singleton
@@ -64,41 +62,66 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder, WikiCo
     private Logger logger;
 
     /**
-     * Parser. Used to load code as XDOM from XObject string.
+     * Used to retrieve parsers dynamically depending on documents syntax.
      */
     @Inject
-    @Named("xwiki/2.0")
-    private Parser parser;
+    private ComponentManager componentManager;
     
     /**
-     * Execution, needed to access the XWiki context map.
+     * Execution context, needed to access the XWiki context map.
      */
     @Inject
     private Execution execution;
 
     @Override
-    public WikiComponent build(DocumentReference reference) throws InvalidComponentDefinitionException,
-        WikiComponentException
+    public List<DocumentReference> getDocumentReferences()
     {
+        List<DocumentReference> results = new ArrayList<DocumentReference>();
+        String query = ", BaseObject as obj, StringProperty as role where obj.className=? and obj.name=doc.fullName "
+                + "and role.id.id=obj.id and role.id.name=? and role.value <>''";
+        List<String> parameters = new ArrayList<String>();
+        parameters.add(COMPONENT_CLASS);
+        parameters.add(COMPONENT_ROLE_TYPE_FIELD);
+
+        try {
+            results.addAll(getXWikiContext().getWiki().getStore().searchDocumentReferences(query, parameters,
+                getXWikiContext()));
+        } catch (XWikiException e) {
+            this.logger.error("Failed to search for existing wiki components [{}]", e.getMessage());
+        }
+
+        return results;
+    }
+
+    @Override
+    public List<WikiComponent> buildComponents(DocumentReference reference) throws WikiComponentException
+    {
+        List<WikiComponent> components = new ArrayList<WikiComponent>();
+
         try {
             XWikiDocument componentDocument = getXWikiContext().getWiki().getDocument(reference, getXWikiContext());
             BaseObject componentObject = componentDocument.getObject(COMPONENT_CLASS);
 
-            if (componentObject == null) {
-                throw new InvalidComponentDefinitionException("No component object could be found");
+            if (!getXWikiContext().getWiki().getRightService().hasProgrammingRights(componentDocument,
+                getXWikiContext())) {
+                throw new WikiComponentException("Registering wiki components requires programming rights");
             }
 
-            String role = componentObject.getStringValue("role");
+            if (componentObject == null) {
+                throw new WikiComponentException("No component object could be found");
+            }
+
+            String role = componentObject.getStringValue(COMPONENT_ROLE_TYPE_FIELD);
 
             if (StringUtils.isBlank(role)) {
-                throw new InvalidComponentDefinitionException("No role were precised in the component");
+                throw new WikiComponentException("No role were precised in the component");
             }
 
             Class< ? > roleAsClass;
             try {
                 roleAsClass = Class.forName(role);
             } catch (ClassNotFoundException e) {
-                throw new InvalidComponentDefinitionException("The role class could not be found", e);
+                throw new WikiComponentException("The role class could not be found", e);
             }
 
             String roleHint = StringUtils.defaultIfEmpty(componentObject.getStringValue("roleHint"), "default");
@@ -107,25 +130,12 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder, WikiCo
             component.setHandledMethods(this.getHandledMethods(componentDocument));
             component.setImplementedInterfaces(this.getDeclaredInterfaces(componentDocument));
 
-            return component;
-
+            components.add(component);
         } catch (XWikiException e) {
             throw new WikiComponentException("Failed to build wiki component for document " + reference.toString());
         }
-    }
 
-    @Override
-    public boolean containsWikiComponent(DocumentReference reference)
-    {
-        XWikiDocument componentDocument;
-        try {
-            componentDocument = getXWikiContext().getWiki().getDocument(reference, getXWikiContext());
-            return componentDocument.getObject(COMPONENT_CLASS) != null;
-        } catch (XWikiException e) {
-            this.logger.error("Failed to verify if document holds a wiki component", e);
-            // assume false
-            return false;
-        }
+        return components;
     }
     
     /**
@@ -139,10 +149,13 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder, WikiCo
             for (BaseObject method : componentDocument.getObjects(METHOD_CLASS)) {
                 if (!StringUtils.isBlank(method.getStringValue(METHOD_NAME_FIELD))) {
                     try {
-                        XDOM xdom = parser.parse(new StringReader(method.getStringValue("code")));
+                        Parser parser =
+                            componentManager.getInstance(Parser.class, componentDocument.getSyntax().toIdString());
+                        XDOM xdom = parser.parse(new StringReader(method.getStringValue(METHOD_CODE_FIELD)));
                         handledMethods.put(method.getStringValue(METHOD_NAME_FIELD), xdom);
-                    } catch (ParseException e) {
-                        // this method will just not be handled
+                    } catch (Exception e) {
+                        this.logger.error("Failed to execute code for component method [{}] in document [{}] ",
+                            method.getNumber(), componentDocument.getPrefixedFullName());
                     }
                 }
             }
@@ -154,7 +167,7 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder, WikiCo
      * @param componentDocument the document holding the component description
      * @return the array of interfaces declared (and actually existing) by the document
      */
-    private Class< ? >[] getDeclaredInterfaces(XWikiDocument componentDocument)
+    private List<Class< ? >> getDeclaredInterfaces(XWikiDocument componentDocument)
     {
         List<Class< ? >> interfaces = new ArrayList<Class< ? >>();
         if (componentDocument.getObjectNumbers(INTERFACE_CLASS) > 0) {
@@ -164,20 +177,20 @@ public class DefaultWikiComponentBuilder implements WikiComponentBuilder, WikiCo
                         Class< ? > implemented = Class.forName(iface.getStringValue(INTERFACE_NAME_FIELD));
                         interfaces.add(implemented);
                     } catch (ClassNotFoundException e) {
-                        // Silent
+                        this.logger.warn("Interface [{}] not found, declared for wiki component [{}]",
+                            iface.getStringValue(INTERFACE_NAME_FIELD), componentDocument.getPrefixedFullName());
                     }
                 }
             }
         }
-        return interfaces.toArray(new Class< ? >[] {});
+        return interfaces;
     }
 
     /**
-     * @return a XWikiContext, retrieved from our execution
+     * @return the XWikiContext extracted from the execution.
      */
-    private XWikiContext getXWikiContext()
+    public XWikiContext getXWikiContext()
     {
-        return (XWikiContext) execution.getContext().getProperty("xwikicontext");
+        return (XWikiContext) this.execution.getContext().getProperty("xwikicontext");
     }
-
 }
